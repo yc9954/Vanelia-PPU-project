@@ -63,7 +63,7 @@ CNN_CONFIG = {
     'complex': {
         'conv_channels': [16, 32],  # 16 complex = 32 real params
         'kernel_size': 3,
-        'fc_size': 64,  # 64 complex = 128 real params
+        'fc_size': 128,  # 128 complex neurons (256 real params) to match Real FC: 4096→128
         'output_size': 10,
         'activation': 'complex_relu'
     }
