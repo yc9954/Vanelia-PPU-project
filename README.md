@@ -63,6 +63,20 @@ Experiment 3 as planned: 50 % of the neurons of layer 1 only, layer 2 only, or b
 <tr>
 <td width="50%" valign="middle">
 
+### The CNN pair on CIFAR-10
+
+`quick_demo.py --cifar` runs the same three experiments on `RealCNN` vs `ComplexCNN` (3 epochs, 70.7 % vs 66.8 % clean test accuracy, about 35 s per epoch on CPU). Both collapse to chance by 50 % damage and their bands overlap almost everywhere, with the complex CNN slightly ahead when only `conv1` or only `conv2` is damaged (35.9 / 38.3 % vs 29.5 / 33.5 %, `docs/layerwise_cnn.png`).
+
+Read with the caveat below: this pair is not parameter-matched, so it is not the comparison the study intends.
+
+</td>
+<td width="50%">
+  <img src="docs/robustness_cnn.png" alt="Accuracy versus damage rate on CIFAR-10 for RealCNN and ComplexCNN with standard-deviation bands" width="100%" />
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
 ### Matched model pairs, checked
 
 `RealMLP` 784 → 64 → 64 → 10 vs `ComplexMLP` 784 → 32c → 32c → 10 for MNIST. `count_parameters` counts each complex parameter twice; the pair comes out at 55,306 vs 53,268 effective real parameters (3.7 % apart, inside `verify_parameters.py`'s 5 % tolerance).
@@ -81,7 +95,7 @@ The CNN pair is **not** matched: `RealCNN` 3 → 32 → 64 → FC128 → 10 has 
 - **Complex layers from scratch.** `ComplexLinear` implements `(W_r + i·W_i)(x_r + i·x_i)` with two real `nn.Linear` sub-layers (`fc_r`, `fc_i`) and a complex bias, plus `ComplexConv2d`, `ComplexBatchNorm1d/2d`, `ComplexMaxPool2d`, `complex_relu` (ReLU on real and imaginary parts separately), `complex_modulus` (the logits are `|z|`), and complex Glorot initialisation following Trabelsi et al.
 - **Data and plots ready.** MNIST and CIFAR-10 loaders with a 90/10 train/validation split and CIFAR augmentation; plotting helpers for robustness curves with error bars, parameter comparison, layer-wise analysis, training curves, and markdown / CSV result tables.
 - **Pre-registered protocol.** `config.py` fixes seed 42, 5 trials per experiment, 50 epochs with Adam (lr 1e-3, weight decay 1e-4, early stopping), damage rates 0 % to 90 % in 10 % steps with 10 masks per rate, a 50 % rate for the layer-wise study, and p < 0.05 for significance.
-- **A reduced demo.** `experiments/quick_demo.py` trains a pair for a few epochs, runs Experiments 1 to 3 at reduced settings, writes the figures above and a `results_*.json`.
+- **A reduced demo.** `experiments/quick_demo.py` trains a pair for a few epochs, runs Experiments 1 to 3 at reduced settings, writes the figures above and a `results_*.json`. With `--cifar` it also does the CNN pair; the whole thing takes about 6 minutes on an Apple M5 CPU.
 
 **Literature foundation** (preserved from the original write-up)
 
@@ -139,6 +153,21 @@ The three planned experiments: **Exp 1** baseline performance and parameter pari
 | 90 % | 13.4 ± 3.3 | 9.6 ± 0.6 |
 
 Layer-wise at 50 %: RealMLP 69.4 / 89.7 / 46.6 and ComplexMLP 57.9 / 76.4 / 25.0 for layer 1 / layer 2 / both.
+Training curves for the two models are in `docs/training_realmlp.png` and `docs/training_complexmlp.png` (validation 96.9 % and 96.3 % after epoch 3).
+
+CIFAR-10, same settings (`--cifar`), hidden layers `conv1`, `conv2`, `fc1`:
+
+| Damage | RealCNN | ComplexCNN |
+| --- | --- | --- |
+| 0 % | 70.7 | 66.8 |
+| 10 % | 52.6 ± 3.3 | 46.8 ± 8.7 |
+| 20 % | 36.0 ± 8.3 | 30.5 ± 7.7 |
+| 30 % | 21.6 ± 5.8 | 24.2 ± 1.4 |
+| 40 % | 15.5 ± 4.0 | 13.5 ± 2.9 |
+| 50 % | 12.1 ± 2.2 | 10.7 ± 0.7 |
+| 60–90 % | 10–11 | 10 |
+
+Layer-wise at 50 %: RealCNN 29.5 / 33.5 / 12.1 and ComplexCNN 35.9 / 38.3 / 10.7 for `conv1` / `conv2` / all three.
 Five masks and one training seed is far too few to call any of this a finding; the standard deviations say as much.
 
 </details>
