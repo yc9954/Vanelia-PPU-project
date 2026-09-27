@@ -1,0 +1,9 @@
+# E5 round 2, MNIST (incumbent m1_do0.15, R 0.888; clean floor 96.85; params <= 1.1x real baseline)
+--tag E5 --name m2_do0.15_modu       --algebra real    --readout modulus_untied --dropout 0.15
+--tag E5 --name m2_do0.15_tn0.05     --algebra real    --readout linear         --dropout 0.15 --train-noise 0.05
+--tag E5 --name m2_do0.15_cplxlin    --algebra complex --readout linear         --dropout 0.15
+--tag E5 --name m2_do0.15_split_lin  --algebra split   --readout linear         --dropout 0.15
+# E5 round 2, tones (incumbent t1_inv_w90_do0.2, R 0.917; clean floor 80.39; params <= 1.1x real 9.2k)
+--tag E5 --dataset tones --name t2_inv_w90_do0.3      --algebra complex --readout modulus --act modrelu --norm none --no-bias --widths 90 90 --dropout 0.3
+--tag E5 --dataset tones --name t2_inv_w100_do0.2     --algebra complex --readout modulus --act modrelu --norm none --no-bias --widths 100 100 --dropout 0.2
+--tag E5 --dataset tones --name t2_inv_w90_do0.2_tn0.05 --algebra complex --readout modulus --act modrelu --norm none --no-bias --widths 90 90 --dropout 0.2 --train-noise 0.05

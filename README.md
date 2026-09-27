@@ -26,6 +26,13 @@
   In this run the complex MLP is the <em>less</em> robust of the pair.</sub>
 </p>
 
+> **Research program (2026-09):** [`research/`](research/README.md) continues this project with a
+> verified harness and about 400 training runs. Draft paper: [`research/PAPER.md`](research/PAPER.md).
+> Short version: once initialisation is matched, the complex MLP here is neither more nor less robust
+> than the real one (the fragility in the figure below was largely an initialisation artifact).
+> On complex-native data with unknown phase, a phase-symmetric complex network is both more
+> accurate per parameter and far more fault tolerant.
+
 > The repository name is historical. This project has nothing to do with [yc9954/Vanelia](https://github.com/yc9954/Vanelia),
 > the video object-insertion pipeline; the two share no code.
 

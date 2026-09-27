@@ -183,3 +183,124 @@ leaks the outlier's energy into every unit. Figure: `figures/rotation_crossover.
 quantization when outliers sit in channels (as in LLMs), is neutral-to-harmful in networks whose
 activations are sparse or whose idle units carry gain, and is harmful for erasure-type faults.
 One number, the alignment between a fault's covariance and the downstream gain, decides which.
+
+---
+
+## Iteration 6: round 2 (E1b re-run, E3b centred penalties, E4b tone detection)
+
+**E1b (reproducibility).** Re-running all 54 E1 runs with single-thread training reproduces every
+clean accuracy exactly (max difference 0.000). Centred and raw `rho` predict equally well on
+naturally trained networks (Spearman with unit death -0.72 vs -0.71, weight noise -0.84 both).
+
+**E3b (centred penalties; hypothesis P5).** The centred penalty can no longer be gamed by an
+input-independent component and does what the theory says to the targeted faults: at weight 0.03
+unit death rises 0.479 -> 0.523 (real) and 0.487 -> 0.532 (complex), weight noise 0.931 -> 0.947 and
+0.892 -> 0.910. But activation quantization collapses (0.984 -> 0.757 real, 0.980 -> 0.942 complex;
+worse at higher weights), so R does not improve. Cause, measured: the penalty spreads contributions
+partly by making activations heavy-tailed; the crest factor^2 at the last hidden site rises from 31
+to about 440, and the per-tensor quantization step grows with it. **P5 refuted as stated**: each
+fault family has its own concentration factor (unit importance for death, activation crest for
+activation quantization), and lowering one can inflate another. Dropout is the only intervention
+tested that does not trade them off.
+
+**E4b (complex-native data; P6).** Non-coherent tone classification (10 frequencies, unknown phase,
+SNR -12 to 4 dB; a matched-filter bank at the class centres scores 80.2 %).
+
+| model | params | clean | R | unit death | weight noise | readout kappa_cancel (wrong) |
+| --- | --- | --- | --- | --- | --- | --- |
+| real, linear | 9.2k | 80.25 | 0.805 | 0.505 | 0.829 | 1.22 |
+| real, linear, 128 wide | 26.6k | 81.57 | 0.828 | 0.547 | 0.863 | 0.74 |
+| real, linear, dropout 0.2 | 9.2k | 79.07 | 0.853 | 0.624 | 0.877 | 1.21 |
+| complex, CReLU + BN, \|z\| | 5.1k | 79.72 | 0.787 | 0.407 | 0.858 | 1.12 |
+| complex, phase-invariant (modReLU, no BN, no bias, \|z\|) | 4.8k | 80.89 | 0.868 | 0.654 | 0.886 | 0.58 |
+| same, 90 wide | 7.9k | 80.96 | 0.888 | 0.704 | 0.912 | 0.43 |
+| same, dropout 0.2 | 4.8k | 81.14 | 0.896 | 0.713 | 0.917 | 0.54 |
+| complex, modReLU, linear readout (not invariant) | 4.9k | 71.81 | 0.667 | 0.445 | 0.619 | 3.22 |
+
+With a fixed, known phase the real network uses the absolute phase and wins on clean accuracy
+(86.9 vs 81.7), as it should. With unknown phase the exactly phase-invariant complex network
+matches the real one with half the parameters and is much more fault tolerant (+0.06 R,
++0.15 retained under unit death), with half the readout cancellation. The complex network without
+the invariant design is the least robust model. **Reading:** the original hypothesis ("complex
+networks are more robust") holds only when the complex structure matches the physics of the task;
+then the intensity readout needs no destructive interference (wrong frequencies are near zero
+anyway), and the theory's cancellation factor is low.
+
+**Next.** Controls to locate the tone effect (E4c: parameter-matched real width 40, untied |z|
+readout on real layers, no-bias real, invariant net with BN, CReLU instead of modReLU,
+split-complex), and E5 round 1 (autoresearch) on MNIST and tones. Running.
+
+---
+
+## Iteration 7: round 3 (E4c tone controls, E5 autoresearch round 1)
+
+**E4c: what carries the tone result?** (3 seeds each)
+
+| variant | params | clean | R | unit death | readout kappa_cancel (wrong) |
+| --- | --- | --- | --- | --- | --- |
+| complex, phase-invariant (reference) | 4.8k | 80.89 | 0.868 | 0.654 | 0.58 |
+| real, width 40 (parameter-matched) | 4.8k | 78.82 | 0.780 | 0.469 | 1.20 |
+| real, untied \|z\| readout, no BN | 9.6k | 79.94 | 0.777 | 0.488 | 1.36 |
+| real, no BN, no bias | 8.8k | 81.07 | 0.792 | 0.537 | 1.69 |
+| complex invariant + BatchNorm | 5.1k | 80.82 | 0.862 | 0.644 | 0.64 |
+| complex invariant with CReLU instead of modReLU | 4.7k | 79.76 | 0.768 | 0.500 | 1.57 |
+| split-complex, same design | 4.8k | 37.98 | (0.881, meaningless at 38 %) | | |
+
+**Result.** The advantage needs all three pieces of the symmetry: complex multiplication (a
+rotation; split-complex numbers cannot represent phase rotation and the task collapses to 38 %),
+a phase-preserving activation (CReLU removes both the accuracy and the robustness gain) and the
+|z| readout (on real layers it does nothing). BatchNorm or bias removal alone do nothing. At equal
+parameters the invariant complex network is +2.1 points more accurate and +0.088 R more robust.
+Each loss of the symmetry raises the readout's cancellation factor (0.58 -> 1.2-1.7), as the
+theory predicts.
+
+**E5 round 1 (autoresearch; keep rule: dR > max between-seed sd, clean >= baseline - 0.5).**
+
+- MNIST, incumbent dropout 0.1 (R 0.881): dropout 0.15 -> 0.888 KEEP; dropout 0.1 + untied |z|
+  readout -> 0.887 KEEP; + weight-noise training 0.05 -> 0.886 (within noise); 0.1 -> 0.880;
+  + rho_var 0.01 -> 0.868. New incumbent: dropout 0.15.
+- Tones, incumbent invariant complex + dropout 0.2 (R 0.896): width 90 (7.9k params, still below
+  the real baseline's 9.2k) -> 0.917 KEEP; dropout 0.3 -> 0.901 KEEP; + rho_var 0.01 and + weight
+  noise 0.1 within noise. New incumbent: width 90 + dropout 0.2.
+
+---
+
+## Iteration 8: E5 round 2 and an out-of-sample test of the diagnostic
+
+**E5 round 2.**
+- MNIST, incumbent dropout 0.15 (R 0.888 +- 0.003): split-complex hidden + linear readout +
+  dropout 0.15 -> 0.895 +- 0.007 KEEP; untied |z| + dropout 0.15 -> 0.894 KEEP; weight-noise
+  training 0.05 + dropout 0.15 -> 0.893 KEEP; complex + linear + dropout 0.15 -> 0.883 (clean
+  96.80, below the 96.85 floor). All kept margins are about one between-seed sd: diminishing
+  returns, and exactly the regime where search-seed wins can be noise. They go to confirmation
+  before anything is claimed.
+- Tones, incumbent invariant complex width 90 + dropout 0.2 (0.917): dropout 0.3 -> 0.923 KEEP;
+  width 100 (9.3k params) -> 0.910 and weight-noise training -> 0.913 discarded.
+
+**Out-of-sample test of `rho`** (runs never used to establish the correlation, penalties excluded):
+tone detection, a different task, n = 66: Spearman with unit death -0.84, weight noise -0.90,
+R -0.86. MNIST dropout-trained networks (E3 sweep + E5), n = 54: -0.31 / -0.32 / -0.39, weaker
+within a narrow family of similar models. Penalised networks, n = 66: +0.57 with unit death, the
+sign flips, which is the Goodhart failure seen directly.
+
+**Next.** E5c: held-out seeds 3-5 for the headline claims and loop winners, and Fashion-MNIST
+(never seen by the loop). Running.
+
+---
+
+## Iteration 9: E5c confirmation (held-out seeds 3-5, Fashion-MNIST)
+
+| claim | search seeds 0-2 | held-out seeds 3-5 | verdict |
+| --- | --- | --- | --- |
+| MNIST: complex \|z\| ~ real under unit death | 0.487 vs 0.479 | 0.484 vs 0.516 | holds (6-seed means 0.486 vs 0.498) |
+| MNIST: complex \|z\| weaker under weight noise | 0.892 vs 0.931 | 0.885 vs 0.942 | replicates (Fashion: 0.886 vs 0.931) |
+| repository initialisation hurts | 0.435 | 0.422 | replicates |
+| loop round 1: dropout 0.15 | R 0.888 | R 0.891 | replicates (Fashion: unit death 0.510 -> 0.669, clean -0.63) |
+| loop round 2: split + linear / untied \|z\| / weight-noise training | 0.895 / 0.894 / 0.893 | 0.852 / 0.893 / 0.889 | **does not replicate** |
+| tones: invariant complex vs parameter-matched real | 80.89 / 0.868 vs 78.82 / 0.780 | 81.04 / 0.869 vs 78.88 / 0.780 | replicates |
+| tones: loop winner (width 90 + dropout 0.3) | 0.923 | 0.921 | replicates |
+
+**Decision.** Stopping criteria met: E1-E5 complete and `PAPER.md` drafted. The second-round MNIST
+"wins" are reported as noise. Proposed next phase (not started): scale the tone result and the
+rotation criterion to CNNs / transformers and real complex data (RadioML-style I/Q, MRI k-space) on
+a GPU; add photonic fault models (phase noise, MZI drift) and TurboQuant's full quantizer.

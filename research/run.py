@@ -30,7 +30,7 @@ def git_commit():
 def build(args, d):
     return nets.Net(d["n_in"], args.widths, d["n_classes"], algebra=args.algebra, readout=args.readout,
                     act=args.act, norm=args.norm, input_paired=d["input_paired"], dropout=args.dropout,
-                    init=args.init, bias=not args.no_bias)
+                    init=args.init, bias=not args.no_bias, train_noise=args.train_noise)
 
 
 def main():
@@ -46,6 +46,7 @@ def main():
     p.add_argument("--dropout", type=float, default=0.0)
     p.add_argument("--init", default="uniform", choices=("uniform", "repo"))
     p.add_argument("--no-bias", action="store_true", help="bias-free layers (exact phase equivariance)")
+    p.add_argument("--train-noise", type=float, default=0.0, help="multiplicative weight noise while training")
     p.add_argument("--penalty", default="none", choices=penalties.PENALTIES)
     p.add_argument("--penalty-weight", type=float, default=0.0)
     p.add_argument("--epochs", type=int, default=5)

@@ -45,18 +45,25 @@ class StructuredLinear(nn.Module):
                 nn.init.normal_(self.A, 0.0, std)
                 nn.init.normal_(self.B, 0.0, std)
         self.bias = nn.Parameter(torch.zeros(n_out)) if bias else None
+        self.train_noise = 0.0  # multiplicative weight noise during training (noise-injection training)
 
     def stored(self):
         """The physically stored weight tensors: what weight faults act on."""
         return [self.W] if self.algebra == "real" else [self.A, self.B]
 
+    def _noisy(self, t):
+        if self.training and self.train_noise > 0:
+            return t * (1 + self.train_noise * torch.randn_like(t))
+        return t
+
     def weight(self):
         if self.algebra == "real":
-            return self.W
+            return self._noisy(self.W)
+        A, B = self._noisy(self.A), self._noisy(self.B)
         if not self.paired_input:
-            return torch.cat([self.A, self.B], 0)
+            return torch.cat([A, B], 0)
         s = -1.0 if self.algebra == "complex" else 1.0
-        return torch.cat([torch.cat([self.A, s * self.B], 1), torch.cat([self.B, self.A], 1)], 0)
+        return torch.cat([torch.cat([A, s * B], 1), torch.cat([B, A], 1)], 0)
 
     def forward(self, x):
         return F.linear(x, self.weight(), self.bias)
@@ -71,7 +78,7 @@ class Net(nn.Module):
     """
 
     def __init__(self, n_in, widths, n_classes, algebra="real", readout="linear", act="relu",
-                 norm="bn", input_paired=False, dropout=0.0, init="uniform", bias=True):
+                 norm="bn", input_paired=False, dropout=0.0, init="uniform", bias=True, train_noise=0.0):
         super().__init__()
         if readout not in READOUTS:
             raise ValueError(readout)
@@ -95,6 +102,9 @@ class Net(nn.Module):
             self.head = StructuredLinear(prev, 2 * C, algebra, paired_input=prev_paired, init=init, bias=bias)
         else:
             self.head = StructuredLinear(prev, 2 * C, "real", bias=bias)
+
+        for layer in self.layers():
+            layer.train_noise = train_noise
 
     def layers(self):
         return list(self.lins) + [self.head]

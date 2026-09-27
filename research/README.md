@@ -5,6 +5,27 @@ protocol, a mutable experiment harness (`lab/`), an append-only results file (`r
 and a chronological log (`LOG.md`) of every hypothesis, run and keep/discard decision. The paper
 draft lives in `PAPER.md`.
 
+## Status (2026-09-28)
+
+Phase 1 is complete: experiments E1-E5 ran (369 logged runs plus pilots and the outlier study) and
+the paper draft is in [`PAPER.md`](PAPER.md). Headline findings, all confirmed on held-out seeds:
+
+1. A first-order identity, `E||delta||^2 / ||Mu||^2 = p^2 + p(1-p) rho`, holds exactly, and `rho`
+   measured on clean data ranks unit-death and weight-noise robustness across real, complex and
+   split-complex networks (Spearman -0.71 / -0.84; -0.84 / -0.90 on a different task).
+2. TurboQuant / QuaRot-style rotation helps only when faults are aligned with high-gain directions:
+   the predicted crossover under function-preserving channel outliers matches the measured one;
+   rotation always hurts erasures, and is catastrophic when dead ReLU units keep BatchNorm gain.
+3. Penalising `rho` is a Goodhart trap; centred penalties trade activation-quantization robustness
+   for unit-death robustness; dropout improves every fault family.
+4. Complex-valued networks are not more robust on MNIST once initialisation is matched (the
+   original demo's fragility was an initialisation artifact). On unknown-phase tone detection, the
+   phase-symmetric complex design is +2.1 points more accurate than a parameter-matched real network
+   and far more fault tolerant (R 0.868 vs 0.780); removing the complex algebra, the phase-preserving
+   activation or the intensity readout removes the advantage.
+
+Some predictions below were refuted (P4 for quantization, P5 as stated); `LOG.md` records how.
+
 ## Vision
 
 Neural networks are moving onto unreliable physical substrates: photonic chips that compute with

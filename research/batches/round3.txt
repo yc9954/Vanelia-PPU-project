@@ -1,0 +1,18 @@
+# E4c: controls for the tone result (which design choice carries the robustness?)
+--tag E4c --dataset tones --name tn_real_lin_w40         --algebra real    --readout linear         --widths 40 40
+--tag E4c --dataset tones --name tn_real_modu_nobn       --algebra real    --readout modulus_untied --norm none
+--tag E4c --dataset tones --name tn_real_lin_nobn_nobias --algebra real    --readout linear         --norm none --no-bias
+--tag E4c --dataset tones --name tn_cplx_inv_bn          --algebra complex --readout modulus        --act modrelu --no-bias
+--tag E4c --dataset tones --name tn_cplx_inv_crelu       --algebra complex --readout modulus        --norm none --no-bias
+--tag E4c --dataset tones --name tn_split_inv            --algebra split   --readout modulus        --act modrelu --norm none --no-bias
+# E5 round 1, MNIST (incumbent E3:real_lin_do0.1, R 0.881; baseline clean 97.35)
+--tag E5 --name m1_do0.1_tn0.05     --algebra real --readout linear         --dropout 0.1 --train-noise 0.05
+--tag E5 --name m1_do0.1_tn0.1      --algebra real --readout linear         --dropout 0.1 --train-noise 0.1
+--tag E5 --name m1_do0.15           --algebra real --readout linear         --dropout 0.15
+--tag E5 --name m1_do0.1_modu       --algebra real --readout modulus_untied --dropout 0.1
+--tag E5 --name m1_do0.1_rhovar0.01 --algebra real --readout linear         --dropout 0.1 --penalty rho_var --penalty-weight 0.01
+# E5 round 1, tones (incumbent E4b:tn_cplx_inv_do, R 0.896; baseline clean 80.89)
+--tag E5 --dataset tones --name t1_inv_do0.3        --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.3
+--tag E5 --dataset tones --name t1_inv_do0.2_tn0.1  --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.2 --train-noise 0.1
+--tag E5 --dataset tones --name t1_inv_w90_do0.2    --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.2 --widths 90 90
+--tag E5 --dataset tones --name t1_inv_do0.2_rhovar0.01 --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.2 --penalty rho_var --penalty-weight 0.01
