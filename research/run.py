@@ -53,6 +53,8 @@ def main():
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     p.add_argument("--families", nargs="+", default=list(suite.DEFAULT_FAMILIES))
     p.add_argument("--out", default=os.path.join(HERE, "runs", "runs.jsonl"))
+    p.add_argument("--save-dir", default=os.environ.get("LAB_SAVE_DIR"),
+                   help="save trained state_dicts here (outside the repo) for re-analysis")
     args = p.parse_args()
 
     d = data.load(args.dataset)
@@ -67,6 +69,10 @@ def main():
         t1 = time.time()
         res = suite.suite(net, d, args.families)
         coh = coherence.coherence(net, d["Xte"][:2000], d["Yte"][:2000], suite.rotations(net))
+        if args.save_dir:
+            os.makedirs(args.save_dir, exist_ok=True)
+            torch.save(dict(config=config, state=net.state_dict()),
+                       os.path.join(args.save_dir, f"{args.tag}_{args.name}_s{seed}.pt"))
         rec = dict(time=time.strftime("%Y-%m-%dT%H:%M:%S"), commit=git_commit(), name=args.name, tag=args.tag,
                    seed=seed, config=config, params=nets.count_params(net), val_acc=val,
                    train_sec=round(t1 - t0, 1), eval_sec=round(time.time() - t1, 1), **res, coherence=coh)

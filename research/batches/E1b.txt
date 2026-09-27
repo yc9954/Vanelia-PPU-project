@@ -1,0 +1,19 @@
+# E1b: E1 re-run with centred coherence metrics and saved models (deterministic single-thread training)
+--tag E1b --name real_lin          --algebra real    --readout linear
+--tag E1b --name real_modu         --algebra real    --readout modulus_untied
+--tag E1b --name cplx_lin          --algebra complex --readout linear
+--tag E1b --name cplx_mod          --algebra complex --readout modulus
+--tag E1b --name cplx_modu         --algebra complex --readout modulus_untied
+--tag E1b --name split_lin         --algebra split   --readout linear
+--tag E1b --name split_mod         --algebra split   --readout modulus
+--tag E1b --name real_lin_w32      --algebra real    --readout linear  --widths 32 32
+--tag E1b --name real_lin_w128     --algebra real    --readout linear  --widths 128 128
+--tag E1b --name cplx_mod_w128     --algebra complex --readout modulus --widths 128 128
+--tag E1b --name real_lin_do       --algebra real    --readout linear  --dropout 0.2
+--tag E1b --name cplx_mod_do       --algebra complex --readout modulus --dropout 0.2
+--tag E1b --name cplx_mod_modrelu  --algebra complex --readout modulus --act modrelu
+--tag E1b --name cplx_lin_modrelu  --algebra complex --readout linear  --act modrelu
+--tag E1b --name real_lin_nobn     --algebra real    --readout linear  --norm none
+--tag E1b --name cplx_mod_nobn     --algebra complex --readout modulus --norm none
+--tag E1b --name cplx_mod_repoinit --algebra complex --readout modulus --init repo
+--tag E1b --name cplx_lin_repoinit --algebra complex --readout linear  --init repo

@@ -120,3 +120,66 @@ complex initialisation (`--init repo`). 54 runs, results in `runs/runs.jsonl` (t
 **Decision.** Keep the coherence theory as the organising idea; demote "complex vs real" to a case
 study (initialisation artifact, weight-noise gap, complex-native data in E4). Next: E3
 (interventions that target `rho` directly) and E4 (I/Q data), running now.
+
+---
+
+## Iteration 4: E3 interventions, first pass (16 configurations x 3 seeds)
+
+**Hypothesis (P5).** Training that lowers `rho` (or `kappa_cancel`) raises robustness to every
+fault type. Refuted if the penalised networks are not more robust.
+
+| intervention | clean | R | unit death |
+| --- | --- | --- | --- |
+| baseline real / complex \|z\| | 97.35 / 97.13 | 0.838 / 0.823 | 0.479 / 0.487 |
+| dropout 0.1 / 0.2 / 0.3 (real) | 97.11 / 96.80 / 96.33 | 0.881 / 0.890 / 0.896 | 0.605 / 0.646 / 0.686 |
+| dropout 0.1 / 0.2 / 0.3 (complex) | 96.95 / 96.61 / 95.78 | 0.879 / 0.887 / 0.892 | 0.614 / 0.660 / 0.701 |
+| raw `rho` penalty 0.1 / 0.3 / 1 (real) | 96.83 / 96.09 / 95.02 | 0.740 / 0.665 / 0.593 | 0.313 / 0.193 / 0.143 |
+| raw `kappa_cancel` penalty 0.3 / 1 (real) | 96.28 / 94.92 | 0.645 / 0.602 | 0.151 / 0.129 |
+
+**Result.** Dropout works monotonically for both algebras. The raw penalties are refuted in the
+strongest way: they drive `rho` to 0.02-0.06, far below any unpenalised network, while robustness
+collapses. This is Goodhart's law on a diagnostic: `rho` divides by the raw signal energy
+`||Mu||^2`, so a network can inflate an input-independent component of `Mu` that carries no
+information. The diagnostic still ranks naturally trained networks (iteration 3), but it is not a
+safe training target.
+
+**Decision.** Add centred variants that divide by the variance of `Mu` over inputs (`rho_var`,
+`kappa_cancel_var`; penalties `rho_var`, `cancel_var`) and re-run (E3b). Re-run E1 as E1b with the
+centred metrics and saved models.
+
+---
+
+## Iteration 5: E2, when does TurboQuant-style rotation help? (controlled outliers)
+
+**Hypothesis (P3).** Rotation makes a site fault isotropic. It should help exactly when the plain
+fault lands on high-gain directions more than isotropic noise would, and hurt otherwise. Refuted
+if the predicted rotated/plain error ratio does not track which of the two wins.
+
+**Setup.** `e2_outliers.py`. Trained real (BN), complex |z| (BN) and real (no BN) MLPs, 3 seeds.
+A function-preserving rescaling multiplies one unit (one complex unit) per hidden site by s = 1, 4,
+16, 64: the preceding layer's row and bias times s (ReLU is positively homogeneous), BatchNorm
+running statistics rescaled, or the next layer's column divided by s without BatchNorm. Maximum
+logit drift <= 1.2e-4, so the function is unchanged; only the activation geometry changes. First-
+order prediction for activation quantization:
+`rot/plain = range_rot^2 ||M_alive||_F^2 / (range^2 sum_j ||M_j||^2 P(u_j != 0))`.
+
+| model | s | predicted rot/plain (sites 1, 2) | 4-bit acts plain -> rotated | 30 % units dead plain -> rotated |
+| --- | --- | --- | --- | --- |
+| real, BN | 1 | 7.7, 5.6 | 97.0 -> 96.1 | 74.4 -> 59.3 |
+| real, BN | 4 | 1.7, 1.2 | 96.1 -> 95.8 | 74.4 -> 54.7 |
+| real, BN | 16 | 0.39, 0.21 | 60.3 -> 88.7 | 74.4 -> 39.3 |
+| real, BN | 64 | 0.24, 0.12 | 10.0 -> 42.9 | 74.4 -> 27.3 |
+| complex \|z\|, BN | 4 | 1.3, 0.61 | 95.1 -> 95.2 | 69.8 -> 46.6 |
+| complex \|z\|, BN | 16 | 0.59, 0.27 | 33.8 -> 68.8 | 69.8 -> 19.6 |
+| real, no BN | 16 | 0.21, 1.67 | 63.1 -> 92.3 | 76.8 -> 48.0 |
+| real, no BN | 64 | 0.12, 1.62 | 10.4 -> 60.6 | 76.8 -> 32.0 |
+
+**Result.** Supported. The predicted ratio crosses 1 where the measured winner flips (a near tie
+at s = 4, rotation far ahead from s = 16). Plain unit death is exactly invariant to the rescaling
+(erasures see the same function), while rotated unit death degrades with s because the rotation
+leaks the outlier's energy into every unit. Figure: `figures/rotation_crossover.png`.
+
+**Interpretation.** Incoherence processing (QuaRot, TurboQuant) is not a free lunch. It helps
+quantization when outliers sit in channels (as in LLMs), is neutral-to-harmful in networks whose
+activations are sparse or whose idle units carry gain, and is harmful for erasure-type faults.
+One number, the alignment between a fault's covariance and the downstream gain, decides which.

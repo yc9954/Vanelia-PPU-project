@@ -1,0 +1,23 @@
+# E3b: centred coherence penalties (cannot be gamed by an input-independent component)
+--tag E3b --name real_lin_rhovar0.03    --algebra real    --readout linear  --penalty rho_var    --penalty-weight 0.03
+--tag E3b --name real_lin_rhovar0.1     --algebra real    --readout linear  --penalty rho_var    --penalty-weight 0.1
+--tag E3b --name real_lin_rhovar0.3     --algebra real    --readout linear  --penalty rho_var    --penalty-weight 0.3
+--tag E3b --name cplx_mod_rhovar0.03    --algebra complex --readout modulus --penalty rho_var    --penalty-weight 0.03
+--tag E3b --name cplx_mod_rhovar0.1     --algebra complex --readout modulus --penalty rho_var    --penalty-weight 0.1
+--tag E3b --name cplx_mod_rhovar0.3     --algebra complex --readout modulus --penalty rho_var    --penalty-weight 0.3
+--tag E3b --name real_lin_cancelvar0.1  --algebra real    --readout linear  --penalty cancel_var --penalty-weight 0.1
+--tag E3b --name real_lin_cancelvar0.3  --algebra real    --readout linear  --penalty cancel_var --penalty-weight 0.3
+--tag E3b --name cplx_mod_cancelvar0.1  --algebra complex --readout modulus --penalty cancel_var --penalty-weight 0.1
+--tag E3b --name cplx_mod_cancelvar0.3  --algebra complex --readout modulus --penalty cancel_var --penalty-weight 0.3
+# E4b: non-coherent tone classification (unknown phase); tones_fixed = known phase (control)
+--tag E4b --dataset tones       --name tn_real_lin          --algebra real    --readout linear
+--tag E4b --dataset tones       --name tn_real_lin_nobn     --algebra real    --readout linear  --norm none
+--tag E4b --dataset tones       --name tn_real_lin_w128     --algebra real    --readout linear  --widths 128 128
+--tag E4b --dataset tones       --name tn_real_lin_do       --algebra real    --readout linear  --dropout 0.2
+--tag E4b --dataset tones       --name tn_cplx_mod          --algebra complex --readout modulus
+--tag E4b --dataset tones       --name tn_cplx_inv          --algebra complex --readout modulus --act modrelu --norm none --no-bias
+--tag E4b --dataset tones       --name tn_cplx_inv_w90      --algebra complex --readout modulus --act modrelu --norm none --no-bias --widths 90 90
+--tag E4b --dataset tones       --name tn_cplx_inv_do       --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.2
+--tag E4b --dataset tones       --name tn_cplx_lin_modrelu  --algebra complex --readout linear  --act modrelu --norm none
+--tag E4b --dataset tones_fixed --name tnfix_real_lin       --algebra real    --readout linear
+--tag E4b --dataset tones_fixed --name tnfix_cplx_inv       --algebra complex --readout modulus --act modrelu --norm none --no-bias

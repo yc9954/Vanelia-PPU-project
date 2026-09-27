@@ -4,11 +4,13 @@ On each batch and hidden site, with the eval-mode BatchNorm scale (running varia
 into the next layer, M = W_next diag(gamma / sigma):
   "rho":    log( sum_j ||M_j||^2 u_j^2 / ||M u||^2 )             concentration x cancellation
   "cancel": log( (||M||_F^2 ||u||^2 / n) / ||M u||^2 )           cancellation only
+  "rho_var", "cancel_var": the same with ||M u||^2 replaced by the batch variance of M u, which
+  cannot be gamed by an input-independent component (the raw versions can; LOG.md iteration 4)
 averaged over sites and scaled by the penalty weight. These are the quantities coherence.py measures.
 """
 import torch
 
-PENALTIES = ("none", "rho", "cancel")
+PENALTIES = ("none", "rho", "cancel", "rho_var", "cancel_var")
 
 
 def _terms(net, i, u):
@@ -17,10 +19,11 @@ def _terms(net, i, u):
     norm = net.norms[i]
     if isinstance(norm, torch.nn.BatchNorm1d):
         M = M * (norm.weight / torch.sqrt(norm.running_var.detach() + norm.eps))[None, :]
-    sig = ((u @ M.T) ** 2).sum()
+    S = u @ M.T
+    sig, sig_var = (S ** 2).sum(), ((S - S.mean(0)) ** 2).sum()
     contrib = ((u ** 2) @ (M ** 2).sum(0)).sum()
     rand = (M ** 2).sum() * (u ** 2).sum() / u.shape[1]
-    return sig, contrib, rand
+    return sig, sig_var, contrib, rand
 
 
 def make(kind, weight):
@@ -30,8 +33,10 @@ def make(kind, weight):
     def penalty(net, sites):
         total = 0.0
         for i, u in enumerate(sites):
-            sig, contrib, rand = _terms(net, i, u)
-            total = total + torch.log(((contrib if kind == "rho" else rand) + 1e-8) / (sig + 1e-8))
+            sig, sig_var, contrib, rand = _terms(net, i, u)
+            num = contrib if kind.startswith("rho") else rand
+            den = sig_var if kind.endswith("_var") else sig
+            total = total + torch.log((num + 1e-8) / (den + 1e-8))
         return weight * total / len(sites)
 
     return penalty

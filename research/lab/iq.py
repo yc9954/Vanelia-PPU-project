@@ -60,3 +60,33 @@ def iq_dataset(name="iq", L=32, sizes=(54000, 6000, 10000), snr_db=(0.0, 16.0), 
     (Xtr, Ytr, _), (Xva, Yva, _), (Xte, Yte, snr_te) = (make(n) for n in sizes)
     return dict(name=name, Xtr=Xtr, Ytr=Ytr, Xva=Xva, Yva=Yva, Xte=Xte, Yte=Yte, snr_te=snr_te,
                 n_in=2 * L, n_classes=len(CLASSES), input_paired=True)
+
+
+def tones_dataset(name="tones", L=32, n_classes=10, sizes=(54000, 6000, 10000), snr_db=(-12.0, 4.0), seed=4321):
+    """Non-coherent tone classification: complex-native data where |<w, z>| is the optimal detector.
+
+    Class k is a complex sinusoid exp(i(2 pi f t + phi)) with f = f_k + jitter, f_k evenly spaced in
+    [-0.4, 0.4] cycles/sample (about 2.8 DFT bins apart at L = 32), jitter ~ U(-0.02, 0.02), amplitude
+    ~ U(0.5, 1.5) and per-sample SNR ~ U(-12, 4) dB (a matched filter over L samples gains ~15 dB).
+    "tones" draws the phase phi ~ U[0, 2 pi) (unknown phase: the label is invariant to it);
+    "tones_fixed" sets phi = 0.
+    """
+    g = torch.Generator().manual_seed(seed)
+    centres = torch.linspace(-0.4, 0.4, n_classes)
+    t = torch.arange(L).float()
+
+    def make(n):
+        y = torch.randint(0, n_classes, (n,), generator=g)
+        f = centres[y] + (torch.rand(n, generator=g) - 0.5) * 0.04
+        phi = torch.zeros(n) if name == "tones_fixed" else torch.rand(n, generator=g) * 2 * math.pi
+        amp = 0.5 + torch.rand(n, generator=g)
+        z = amp[:, None] * torch.exp(1j * (2 * math.pi * f[:, None] * t[None, :] + phi[:, None]))
+        snr = snr_db[0] + (snr_db[1] - snr_db[0]) * torch.rand(n, generator=g)
+        std = amp / torch.sqrt(10 ** (snr / 10))
+        noise = torch.complex(torch.randn(n, L, generator=g), torch.randn(n, L, generator=g)) / math.sqrt(2)
+        z = z + noise * std[:, None]
+        return torch.cat([z.real, z.imag], 1).float(), y, snr
+
+    (Xtr, Ytr, _), (Xva, Yva, _), (Xte, Yte, snr_te) = (make(n) for n in sizes)
+    return dict(name=name, Xtr=Xtr, Ytr=Ytr, Xva=Xva, Yva=Yva, Xte=Xte, Yte=Yte, snr_te=snr_te,
+                n_in=2 * L, n_classes=n_classes, input_paired=True)

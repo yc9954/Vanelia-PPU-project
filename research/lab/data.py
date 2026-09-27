@@ -23,6 +23,9 @@ def load(name):
         elif name.startswith("iq"):
             from .iq import iq_dataset
             _CACHE[name] = iq_dataset(name)
+        elif name.startswith("tones"):
+            from .iq import tones_dataset
+            _CACHE[name] = tones_dataset(name)
         else:
             raise ValueError(f"unknown dataset {name}")
     return _CACHE[name]

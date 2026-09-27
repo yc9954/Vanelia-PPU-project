@@ -10,6 +10,9 @@ failure units J (single units or pairs). With expectations over inputs (ratio of
   kappa_cancel = E [||M||_F^2 ||u||^2 / n] / E ||S||^2  1 = contributions add like random vectors,
                  < 1 constructive, > 1 destructive interference (cancellation)
   kappa_conc   = rho / kappa_cancel                     1 = work spread evenly over units
+  *_var        the same ratios with the signal measured as its variance over inputs, E||S - E S||^2.
+               Training against the raw-energy version is gameable: a large input-independent
+               component inflates ||S|| without carrying information (iteration 4 in LOG.md).
 
 kappa_cancel is a noise-to-signal gain ratio: destructive interference raises it, and so do units that
 never fire but still carry downstream gain (e.g. dead ReLUs behind BatchNorm). "active" repeats the
@@ -42,8 +45,11 @@ def site_stats(U, M, granularity, c=None, rows=None):
         k = n // 2
         contrib = contrib + 2 * (U[:, :k] * U[:, k:] * (w @ (M[:, :k] * M[:, k:]))).sum()
     rand = (colsq.sum(1) * (U ** 2).sum(1) / n).sum()
-    out = dict(sig=sig.item(), contrib=contrib.item(), rand=rand.item(), rho=(contrib / sig).item(),
-               kappa_cancel=(rand / sig).item(), kappa_conc=(contrib / rand).item())
+    Sc = S - (S * w).sum(0) / w.sum(0).clamp_min(1)  # centred over inputs (per selected row)
+    sig_var = ((Sc ** 2) * w).sum()
+    out = dict(sig=sig.item(), sig_var=sig_var.item(), contrib=contrib.item(), rand=rand.item(),
+               rho=(contrib / sig).item(), kappa_cancel=(rand / sig).item(), kappa_conc=(contrib / rand).item(),
+               rho_var=(contrib / sig_var).item(), kappa_cancel_var=(rand / sig_var).item())
     if c is not None:
         full = (((S + c) ** 2) * w).sum()
         out.update(full=full.item(), rho_full=(contrib / full).item(), kappa_cancel_full=(rand / full).item())
