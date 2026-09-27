@@ -71,7 +71,7 @@ class Net(nn.Module):
     """
 
     def __init__(self, n_in, widths, n_classes, algebra="real", readout="linear", act="relu",
-                 norm="bn", input_paired=False, dropout=0.0, init="uniform"):
+                 norm="bn", input_paired=False, dropout=0.0, init="uniform", bias=True):
         super().__init__()
         if readout not in READOUTS:
             raise ValueError(readout)
@@ -83,18 +83,18 @@ class Net(nn.Module):
         self.lins, self.norms, self.mod_bias = nn.ModuleList(), nn.ModuleList(), nn.ParameterList()
         prev, prev_paired = n_in, input_paired
         for w in self.widths:
-            self.lins.append(StructuredLinear(prev, w, algebra, paired_input=prev_paired, init=init))
+            self.lins.append(StructuredLinear(prev, w, algebra, paired_input=prev_paired, init=init, bias=bias))
             self.norms.append(nn.BatchNorm1d(w) if norm == "bn" else nn.Identity())
             if act == "modrelu":
                 self.mod_bias.append(nn.Parameter(torch.zeros(w // 2)))
             prev, prev_paired = w, paired
         C = n_classes
         if readout == "linear":
-            self.head = StructuredLinear(prev, C, "real")
+            self.head = StructuredLinear(prev, C, "real", bias=bias)
         elif readout == "modulus":
-            self.head = StructuredLinear(prev, 2 * C, algebra, paired_input=prev_paired, init=init)
+            self.head = StructuredLinear(prev, 2 * C, algebra, paired_input=prev_paired, init=init, bias=bias)
         else:
-            self.head = StructuredLinear(prev, 2 * C, "real")
+            self.head = StructuredLinear(prev, 2 * C, "real", bias=bias)
 
     def layers(self):
         return list(self.lins) + [self.head]

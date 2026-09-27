@@ -1,0 +1,28 @@
+# E3: interventions on MNIST (search seeds 0-2). Does lowering rho / cancellation raise robustness (P5)?
+--tag E3 --name real_lin_rho0.1       --algebra real    --readout linear  --penalty rho    --penalty-weight 0.1
+--tag E3 --name real_lin_rho0.3       --algebra real    --readout linear  --penalty rho    --penalty-weight 0.3
+--tag E3 --name real_lin_rho1         --algebra real    --readout linear  --penalty rho    --penalty-weight 1.0
+--tag E3 --name cplx_mod_rho0.1       --algebra complex --readout modulus --penalty rho    --penalty-weight 0.1
+--tag E3 --name cplx_mod_rho0.3       --algebra complex --readout modulus --penalty rho    --penalty-weight 0.3
+--tag E3 --name cplx_mod_rho1         --algebra complex --readout modulus --penalty rho    --penalty-weight 1.0
+--tag E3 --name real_lin_cancel0.3    --algebra real    --readout linear  --penalty cancel --penalty-weight 0.3
+--tag E3 --name real_lin_cancel1      --algebra real    --readout linear  --penalty cancel --penalty-weight 1.0
+--tag E3 --name cplx_mod_cancel0.3    --algebra complex --readout modulus --penalty cancel --penalty-weight 0.3
+--tag E3 --name cplx_mod_cancel1      --algebra complex --readout modulus --penalty cancel --penalty-weight 1.0
+--tag E3 --name real_lin_do0.1        --algebra real    --readout linear  --dropout 0.1
+--tag E3 --name real_lin_do0.3        --algebra real    --readout linear  --dropout 0.3
+--tag E3 --name cplx_mod_do0.1        --algebra complex --readout modulus --dropout 0.1
+--tag E3 --name cplx_mod_do0.3        --algebra complex --readout modulus --dropout 0.3
+--tag E3 --name real_lin_do0.2_rho0.3 --algebra real    --readout linear  --dropout 0.2 --penalty rho --penalty-weight 0.3
+--tag E3 --name cplx_mod_do0.2_rho0.3 --algebra complex --readout modulus --dropout 0.2 --penalty rho --penalty-weight 0.3
+# E4: complex-native I/Q data with random carrier phase (P6). iq_fixed = no phase symmetry (control).
+--tag E4 --dataset iq       --name iq_real_lin        --algebra real    --readout linear
+--tag E4 --dataset iq       --name iq_real_lin_nobn   --algebra real    --readout linear  --norm none
+--tag E4 --dataset iq       --name iq_real_lin_w128   --algebra real    --readout linear  --widths 128 128
+--tag E4 --dataset iq       --name iq_cplx_mod        --algebra complex --readout modulus
+--tag E4 --dataset iq       --name iq_cplx_inv        --algebra complex --readout modulus --act modrelu --norm none --no-bias
+--tag E4 --dataset iq       --name iq_cplx_inv_w90    --algebra complex --readout modulus --act modrelu --norm none --no-bias --widths 90 90
+--tag E4 --dataset iq       --name iq_cplx_lin_modrelu --algebra complex --readout linear --act modrelu --norm none
+--tag E4 --dataset iq       --name iq_cplx_inv_do     --algebra complex --readout modulus --act modrelu --norm none --no-bias --dropout 0.2
+--tag E4 --dataset iq_fixed --name iqfix_real_lin     --algebra real    --readout linear
+--tag E4 --dataset iq_fixed --name iqfix_cplx_inv     --algebra complex --readout modulus --act modrelu --norm none --no-bias
