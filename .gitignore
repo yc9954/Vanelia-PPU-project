@@ -1,0 +1,19 @@
+# datasets, checkpoints and run outputs
+data/
+saved_models/
+results/
+*.pth
+*.pt
+*.ckpt
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
